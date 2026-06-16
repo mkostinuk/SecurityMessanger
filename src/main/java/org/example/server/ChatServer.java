@@ -1,6 +1,8 @@
 package org.example.server;
 
+import com.google.gson.Gson;
 import org.example.db.Database;
+import org.example.model.ChatMessage;
 import org.example.model.User;
 import org.example.protocol.Packet;
 import org.example.protocol.PacketType;
@@ -10,6 +12,7 @@ import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
 
 import java.net.InetSocketAddress;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -19,6 +22,7 @@ public class ChatServer extends WebSocketServer {
 
     private final Database database;
     private final AuthService auth;
+    private final Gson gson = new Gson();
     private final ExecutorService threadPool = Executors.newCachedThreadPool();
 
     private final Map<WebSocket, ClientSession> sessions = new ConcurrentHashMap<>();
@@ -79,6 +83,7 @@ public class ChatServer extends WebSocketServer {
                 handleLogin(conn, session, packet);
                 break;
             case CHAT_MSG:
+                handleChat(conn, session, packet);
                 break;
             case PRIVATE_MSG:
                 break;
@@ -103,6 +108,7 @@ public class ChatServer extends WebSocketServer {
         send(conn, new Packet(PacketType.AUTH_SUCCESS)
                 .put("username", user.getUsername())
                 .put("role", user.getRole().name()));
+        sendHistory(conn);
         System.out.println("[Server] registered: " + username);
     }
 
@@ -124,7 +130,35 @@ public class ChatServer extends WebSocketServer {
         send(conn, new Packet(PacketType.AUTH_SUCCESS)
                 .put("username", user.getUsername())
                 .put("role", user.getRole().name()));
+        sendHistory(conn);
         System.out.println("[Server] logged in: " + username);
+    }
+
+    private void handleChat(WebSocket conn, ClientSession session, Packet packet) {
+        if (!session.isAuthenticated()) {
+            return;
+        }
+        String text = packet.get("text");
+        if (text == null || text.isBlank()) {
+            return;
+        }
+        database.saveMessage(session.getUserId(), text);
+        broadcast(new Packet(PacketType.CHAT_MSG)
+                .put("username", session.getUsername())
+                .put("text", text));
+    }
+
+    private void sendHistory(WebSocket conn) {
+        List<ChatMessage> recent = database.getRecentMessages(50);
+        send(conn, new Packet(PacketType.HISTORY).put("messages", gson.toJson(recent)));
+    }
+
+    private void broadcast(Packet packet) {
+        for (Map.Entry<WebSocket, ClientSession> entry : sessions.entrySet()) {
+            if (entry.getValue().isAuthenticated()) {
+                send(entry.getKey(), packet);
+            }
+        }
     }
 
     public void send(WebSocket conn, Packet packet) {

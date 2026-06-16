@@ -1,6 +1,7 @@
 package org.example.db;
 
 import org.example.Config;
+import org.example.model.ChatMessage;
 import org.example.model.Role;
 import org.example.model.User;
 
@@ -12,6 +13,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class Database {
 
@@ -75,6 +79,38 @@ public class Database {
         } catch (SQLException e) {
             throw new RuntimeException("error creating user", e);
         }
+    }
+
+    public void saveMessage(int senderId, String content) {
+        String sql = "INSERT INTO messages (sender_id, content) VALUES (?, ?)";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, senderId);
+            ps.setString(2, content);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("error saving message", e);
+        }
+    }
+
+    public List<ChatMessage> getRecentMessages(int limit) {
+        String sql = "SELECT u.username, m.content FROM messages m " +
+                "JOIN users u ON m.sender_id = u.id " +
+                "ORDER BY m.id DESC LIMIT ?";
+        List<ChatMessage> result = new ArrayList<>();
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    result.add(new ChatMessage(rs.getString("username"), rs.getString("content")));
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("error loading messages", e);
+        }
+        Collections.reverse(result);
+        return result;
     }
 
     private String readResource(String name) {
