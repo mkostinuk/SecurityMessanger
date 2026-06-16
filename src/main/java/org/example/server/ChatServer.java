@@ -1,8 +1,10 @@
 package org.example.server;
 
 import org.example.db.Database;
+import org.example.model.User;
 import org.example.protocol.Packet;
 import org.example.protocol.PacketType;
+import org.example.service.AuthService;
 import org.java_websocket.WebSocket;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
@@ -16,6 +18,7 @@ import java.util.concurrent.Executors;
 public class ChatServer extends WebSocketServer {
 
     private final Database database;
+    private final AuthService auth;
     private final ExecutorService threadPool = Executors.newCachedThreadPool();
 
     private final Map<WebSocket, ClientSession> sessions = new ConcurrentHashMap<>();
@@ -23,6 +26,7 @@ public class ChatServer extends WebSocketServer {
     public ChatServer(int port, Database database) {
         super(new InetSocketAddress(port));
         this.database = database;
+        this.auth = new AuthService(database);
     }
 
     @Override
@@ -69,8 +73,10 @@ public class ChatServer extends WebSocketServer {
 
         switch (packet.getType()) {
             case REGISTER:
+                handleRegister(conn, session, packet);
                 break;
             case LOGIN:
+                handleLogin(conn, session, packet);
                 break;
             case CHAT_MSG:
                 break;
@@ -81,6 +87,44 @@ public class ChatServer extends WebSocketServer {
             default:
                 send(conn, new Packet(PacketType.ERROR).put("message", "unknown package type"));
         }
+    }
+
+    private void handleRegister(WebSocket conn, ClientSession session, Packet packet) {
+        String username = packet.get("username");
+        String password = packet.get("password");
+
+        User user = auth.register(username, password);
+        if (user == null) {
+            send(conn, new Packet(PacketType.AUTH_FAIL).put("message", "username already taken"));
+            return;
+        }
+
+        session.login(user.getId(), user.getUsername(), user.getRole());
+        send(conn, new Packet(PacketType.AUTH_SUCCESS)
+                .put("username", user.getUsername())
+                .put("role", user.getRole().name()));
+        System.out.println("[Server] registered: " + username);
+    }
+
+    private void handleLogin(WebSocket conn, ClientSession session, Packet packet) {
+        String username = packet.get("username");
+        String password = packet.get("password");
+
+        User user = auth.login(username, password);
+        if (user == null) {
+            send(conn, new Packet(PacketType.AUTH_FAIL).put("message", "incorrect login or password"));
+            return;
+        }
+        if (user.isBanned()) {
+            send(conn, new Packet(PacketType.AUTH_FAIL).put("message", "you are banned"));
+            return;
+        }
+
+        session.login(user.getId(), user.getUsername(), user.getRole());
+        send(conn, new Packet(PacketType.AUTH_SUCCESS)
+                .put("username", user.getUsername())
+                .put("role", user.getRole().name()));
+        System.out.println("[Server] logged in: " + username);
     }
 
     public void send(WebSocket conn, Packet packet) {
