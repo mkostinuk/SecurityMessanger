@@ -103,6 +103,11 @@ public class ChatServer extends WebSocketServer {
         String username = packet.get("username");
         String password = packet.get("password");
 
+        if (isBlank(username) || isBlank(password)) {
+            send(conn, new Packet(PacketType.AUTH_FAIL).put("message", "username and password are required"));
+            return;
+        }
+
         User user = auth.register(username, password);
         if (user == null) {
             send(conn, new Packet(PacketType.AUTH_FAIL).put("message", "username already taken"));
@@ -121,6 +126,11 @@ public class ChatServer extends WebSocketServer {
     private void handleLogin(WebSocket conn, ClientSession session, Packet packet) {
         String username = packet.get("username");
         String password = packet.get("password");
+
+        if (isBlank(username) || isBlank(password)) {
+            send(conn, new Packet(PacketType.AUTH_FAIL).put("message", "username and password are required"));
+            return;
+        }
 
         User user = auth.login(username, password);
         if (user == null) {
@@ -179,6 +189,10 @@ public class ChatServer extends WebSocketServer {
                 send(entry.getKey(), packet);
             }
         }
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
     public void send(WebSocket conn, Packet packet) {
