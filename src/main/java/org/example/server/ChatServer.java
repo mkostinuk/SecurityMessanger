@@ -12,6 +12,8 @@ import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
 
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -49,6 +51,9 @@ public class ChatServer extends WebSocketServer {
         ClientSession session = sessions.remove(conn);
         String who = (session != null && session.isAuthenticated()) ? session.getUsername() : "unknown";
         System.out.println("[Server] connection closed (" + who + "), reason: " + reason);
+        if (session != null && session.isAuthenticated()) {
+            broadcastUserList();
+        }
     }
 
     @Override
@@ -109,6 +114,7 @@ public class ChatServer extends WebSocketServer {
                 .put("username", user.getUsername())
                 .put("role", user.getRole().name()));
         sendHistory(conn);
+        broadcastUserList();
         System.out.println("[Server] registered: " + username);
     }
 
@@ -131,6 +137,7 @@ public class ChatServer extends WebSocketServer {
                 .put("username", user.getUsername())
                 .put("role", user.getRole().name()));
         sendHistory(conn);
+        broadcastUserList();
         System.out.println("[Server] logged in: " + username);
     }
 
@@ -151,6 +158,19 @@ public class ChatServer extends WebSocketServer {
     private void sendHistory(WebSocket conn) {
         List<ChatMessage> recent = database.getRecentMessages(50);
         send(conn, new Packet(PacketType.HISTORY).put("messages", gson.toJson(recent)));
+    }
+
+    private void broadcastUserList() {
+        List<Map<String, String>> users = new ArrayList<>();
+        for (ClientSession s : sessions.values()) {
+            if (s.isAuthenticated()) {
+                Map<String, String> u = new HashMap<>();
+                u.put("username", s.getUsername());
+                u.put("role", s.getRole().name());
+                users.add(u);
+            }
+        }
+        broadcast(new Packet(PacketType.USER_LIST).put("users", gson.toJson(users)));
     }
 
     private void broadcast(Packet packet) {

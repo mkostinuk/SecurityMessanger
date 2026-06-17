@@ -9,8 +9,9 @@ const password = ref('')
 </script>
 
 <template>
-  <div class="card login">
-    <h1>Security Messenger</h1>
+  <div class="login-screen">
+    <div class="card login">
+      <h1>Security Messenger</h1>
     <p class="subtitle">encrypted real-time chat</p>
 
     <input v-model="username" placeholder="Login" />
@@ -27,5 +28,6 @@ const password = ref('')
     </div>
 
     <p class="status">{{ status }}</p>
+    </div>
   </div>
 </template>

@@ -9,6 +9,7 @@ const status = ref('connecting...')
 const loggedIn = ref(false)
 const me = reactive({ username: '', role: '' })
 const messages = ref([])
+const onlineUsers = ref([])
 
 const socket = new WebSocket(SERVER_URL)
 socket.onopen = () => { status.value = 'connected' }
@@ -45,6 +46,9 @@ function onPacket(packet) {
     case 'HISTORY':
       messages.value = JSON.parse(packet.data.messages)
       break
+    case 'USER_LIST':
+      onlineUsers.value = JSON.parse(packet.data.users)
+      break
     case 'CHAT_MSG':
       messages.value.push({ username: packet.data.username, text: packet.data.text })
       break
@@ -56,8 +60,13 @@ function onPacket(packet) {
 </script>
 
 <template>
-  <div class="app">
-    <LoginForm v-if="!loggedIn" :status="status" @login="login" @register="register" />
-    <ChatRoom v-else :me="me" :status="status" :messages="messages" @send="sendChat" />
-  </div>
+  <LoginForm v-if="!loggedIn" :status="status" @login="login" @register="register" />
+  <ChatRoom
+    v-else
+    :me="me"
+    :status="status"
+    :messages="messages"
+    :users="onlineUsers"
+    @send="sendChat"
+  />
 </template>

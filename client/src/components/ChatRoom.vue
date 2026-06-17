@@ -4,7 +4,8 @@ import { ref, watch, nextTick, computed } from 'vue'
 const props = defineProps({
   me: Object,
   status: String,
-  messages: Array
+  messages: Array,
+  users: Array,
 })
 const emit = defineEmits(['send'])
 
@@ -27,7 +28,7 @@ watch(
     if (listRef.value) {
       listRef.value.scrollTop = listRef.value.scrollHeight
     }
-  }
+  },
 )
 </script>
 
@@ -39,6 +40,15 @@ watch(
       <nav class="channels">
         <div class="channel active"># general</div>
       </nav>
+
+      <div class="online">
+        <div class="online-title">Online — {{ users.length }}</div>
+        <div v-for="u in users" :key="u.username" class="online-user">
+          <span class="dot"></span>
+          <span class="online-name">{{ u.username }}</span>
+          <span v-if="u.role !== 'USER'" class="role">{{ u.role }}</span>
+        </div>
+      </div>
 
       <div class="profile">
         <div class="avatar">{{ initial }}</div>
@@ -56,12 +66,7 @@ watch(
       </header>
 
       <div class="messages" ref="listRef">
-        <div
-          v-for="(m, i) in messages"
-          :key="i"
-          class="bubble"
-          :class="{ own: m.username === me.username }"
-        >
+        <div v-for="(m, i) in messages" :key="i" class="bubble" :class="{ own: m.username === me.username }">
           <span class="author">{{ m.username }}</span>
           <span class="text">{{ m.text }}</span>
         </div>
