@@ -5,6 +5,7 @@ public enum PacketType {
     LOGIN,
     CHAT_MSG,
     PRIVATE_MSG,
+    PUBLIC_KEY,
     ADMIN_ACTION,
     AUTH_SUCCESS,
     AUTH_FAIL,

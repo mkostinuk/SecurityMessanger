@@ -8,6 +8,7 @@ public class ClientSession {
     private String username;
     private Role role;
     private boolean authenticated;
+    private String publicKey;
 
     public void login(int userId, String username, Role role) {
         this.userId = userId;
@@ -30,5 +31,13 @@ public class ClientSession {
 
     public Role getRole() {
         return role;
+    }
+
+    public String getPublicKey() {
+        return publicKey;
+    }
+
+    public void setPublicKey(String publicKey) {
+        this.publicKey = publicKey;
     }
 }

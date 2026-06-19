@@ -91,6 +91,10 @@ public class ChatServer extends WebSocketServer {
                 handleChat(conn, session, packet);
                 break;
             case PRIVATE_MSG:
+                handlePrivate(session, packet);
+                break;
+            case PUBLIC_KEY:
+                handlePublicKey(session, packet);
                 break;
             case ADMIN_ACTION:
                 break;
@@ -165,6 +169,31 @@ public class ChatServer extends WebSocketServer {
                 .put("text", text));
     }
 
+    private void handlePrivate(ClientSession session, Packet packet) {
+        if (!session.isAuthenticated()) {
+            return;
+        }
+        String to = packet.get("to");
+        String payload = packet.get("payload");
+
+        for (Map.Entry<WebSocket, ClientSession> entry : sessions.entrySet()) {
+            ClientSession s = entry.getValue();
+            if (s.isAuthenticated() && s.getUsername().equals(to)) {
+                send(entry.getKey(), new Packet(PacketType.PRIVATE_MSG)
+                        .put("from", session.getUsername())
+                        .put("payload", payload));
+            }
+        }
+    }
+
+    private void handlePublicKey(ClientSession session, Packet packet) {
+        if (!session.isAuthenticated()) {
+            return;
+        }
+        session.setPublicKey(packet.get("key"));
+        broadcastUserList();
+    }
+
     private void sendHistory(WebSocket conn) {
         List<ChatMessage> recent = database.getRecentMessages(50);
         send(conn, new Packet(PacketType.HISTORY).put("messages", gson.toJson(recent)));
@@ -177,6 +206,7 @@ public class ChatServer extends WebSocketServer {
                 Map<String, String> u = new HashMap<>();
                 u.put("username", s.getUsername());
                 u.put("role", s.getRole().name());
+                u.put("publicKey", s.getPublicKey() == null ? "" : s.getPublicKey());
                 users.add(u);
             }
         }
