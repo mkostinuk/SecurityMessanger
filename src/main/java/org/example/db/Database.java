@@ -81,20 +81,34 @@ public class Database {
         }
     }
 
-    public void saveMessage(int senderId, String content) {
-        String sql = "INSERT INTO messages (sender_id, content) VALUES (?, ?)";
+    public int saveMessage(int senderId, String content) {
+        String sql = "INSERT INTO messages (sender_id, content) VALUES (?, ?) RETURNING id";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, senderId);
             ps.setString(2, content);
-            ps.executeUpdate();
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getInt("id");
+            }
         } catch (SQLException e) {
             throw new RuntimeException("error saving message", e);
         }
     }
 
+    public void deleteMessage(int id) {
+        String sql = "DELETE FROM messages WHERE id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("error deleting message", e);
+        }
+    }
+
     public List<ChatMessage> getRecentMessages(int limit) {
-        String sql = "SELECT u.username, m.content FROM messages m " +
+        String sql = "SELECT m.id, u.username, m.content FROM messages m " +
                 "JOIN users u ON m.sender_id = u.id " +
                 "ORDER BY m.id DESC LIMIT ?";
         List<ChatMessage> result = new ArrayList<>();
@@ -103,7 +117,7 @@ public class Database {
             ps.setInt(1, limit);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    result.add(new ChatMessage(rs.getString("username"), rs.getString("content")));
+                    result.add(new ChatMessage(rs.getInt("id"), rs.getString("username"), rs.getString("content")));
                 }
             }
         } catch (SQLException e) {

@@ -8,7 +8,7 @@ const props = defineProps({
   users: Array,
   privateChats: Object
 })
-const emit = defineEmits(['send', 'send-private'])
+const emit = defineEmits(['send', 'send-private', 'delete'])
 
 const draft = ref('')
 const listRef = ref(null)
@@ -24,12 +24,16 @@ const openDialogs = computed(() => Object.keys(props.privateChats))
 
 const isPrivate = computed(() => activeChat.value !== 'general')
 
+const canModerate = computed(
+  () => props.me.role === 'MODERATOR' || props.me.role === 'ADMIN'
+)
+
 const currentMessages = computed(() => {
   if (!isPrivate.value) {
-    return props.messages.map((m) => ({ author: m.username, text: m.text }))
+    return props.messages.map((m) => ({ id: m.id, author: m.username, text: m.text }))
   }
   const conv = props.privateChats[activeChat.value] || []
-  return conv.map((m) => ({ author: m.from, text: m.text }))
+  return conv.map((m) => ({ id: null, author: m.from, text: m.text }))
 })
 
 function openChat(username) {
@@ -122,6 +126,14 @@ watch(
         >
           <span class="author">{{ m.author }}</span>
           <span class="text">{{ m.text }}</span>
+          <button
+            v-if="canModerate && m.id"
+            class="del"
+            title="delete message"
+            @click="emit('delete', m.id)"
+          >
+            ✕
+          </button>
         </div>
         <p v-if="currentMessages.length === 0" class="empty">
           {{ isPrivate ? 'Private chat — messages are encrypted' : 'No messages yet — say hi' }}

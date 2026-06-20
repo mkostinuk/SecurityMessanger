@@ -35,6 +35,10 @@ export function useChat() {
     send('CHAT_MSG', { text })
   }
 
+  function deleteMessage(id) {
+    send('ADMIN_ACTION', { action: 'DELETE_MSG', messageId: String(id) })
+  }
+
   async function sendPrivate(toUser, text) {
     const key = publicKeys[toUser]
     if (!key) {
@@ -78,7 +82,14 @@ export function useChat() {
         }
         break
       case 'CHAT_MSG':
-        messages.value.push({ username: packet.data.username, text: packet.data.text })
+        messages.value.push({
+          id: Number(packet.data.id),
+          username: packet.data.username,
+          text: packet.data.text
+        })
+        break
+      case 'MSG_DELETED':
+        messages.value = messages.value.filter((m) => m.id !== Number(packet.data.id))
         break
       case 'PRIVATE_MSG': {
         const from = packet.data.from
@@ -102,6 +113,7 @@ export function useChat() {
     login,
     register,
     sendChat,
-    sendPrivate
+    sendPrivate,
+    deleteMessage
   }
 }

@@ -13,7 +13,8 @@ const {
   login,
   register,
   sendChat,
-  sendPrivate
+  sendPrivate,
+  deleteMessage
 } = useChat()
 </script>
 
@@ -28,5 +29,6 @@ const {
     :private-chats="privateChats"
     @send="sendChat"
     @send-private="sendPrivate"
+    @delete="deleteMessage"
   />
 </template>

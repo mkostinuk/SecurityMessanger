@@ -3,6 +3,7 @@ package org.example.server;
 import com.google.gson.Gson;
 import org.example.db.Database;
 import org.example.model.ChatMessage;
+import org.example.model.Role;
 import org.example.model.User;
 import org.example.protocol.Packet;
 import org.example.protocol.PacketType;
@@ -97,6 +98,7 @@ public class ChatServer extends WebSocketServer {
                 handlePublicKey(session, packet);
                 break;
             case ADMIN_ACTION:
+                handleAdminAction(conn, session, packet);
                 break;
             default:
                 send(conn, new Packet(PacketType.ERROR).put("message", "unknown package type"));
@@ -163,10 +165,26 @@ public class ChatServer extends WebSocketServer {
         if (text == null || text.isBlank()) {
             return;
         }
-        database.saveMessage(session.getUserId(), text);
+        int id = database.saveMessage(session.getUserId(), text);
         broadcast(new Packet(PacketType.CHAT_MSG)
+                .put("id", String.valueOf(id))
                 .put("username", session.getUsername())
                 .put("text", text));
+    }
+
+    private void handleAdminAction(WebSocket conn, ClientSession session, Packet packet) {
+        if (!session.isAuthenticated()) {
+            return;
+        }
+        String action = packet.get("action");
+
+        if ("DELETE_MSG".equals(action)) {
+            if (session.getRole() == Role.MODERATOR || session.getRole() == Role.ADMIN) {
+                int id = Integer.parseInt(packet.get("messageId"));
+                database.deleteMessage(id);
+                broadcast(new Packet(PacketType.MSG_DELETED).put("id", String.valueOf(id)));
+            }
+        }
     }
 
     private void handlePrivate(ClientSession session, Packet packet) {
