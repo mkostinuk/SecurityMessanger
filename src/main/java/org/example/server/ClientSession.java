@@ -33,6 +33,10 @@ public class ClientSession {
         return role;
     }
 
+    public void setRole(Role role) {
+        this.role = role;
+    }
+
     public String getPublicKey() {
         return publicKey;
     }

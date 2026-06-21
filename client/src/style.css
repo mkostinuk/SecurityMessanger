@@ -193,6 +193,29 @@ button {
   white-space: nowrap;
 }
 
+.admin-actions {
+  display: none;
+  gap: 4px;
+}
+
+.online-user:hover .admin-actions {
+  display: flex;
+}
+
+.mini {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.15);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.mini.ban:hover {
+  background: #ef4444;
+}
+
 .profile {
   display: flex;
   align-items: center;

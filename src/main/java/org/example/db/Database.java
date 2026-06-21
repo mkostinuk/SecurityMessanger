@@ -81,6 +81,30 @@ public class Database {
         }
     }
 
+    public void setBanned(String username, boolean banned) {
+        String sql = "UPDATE users SET is_banned = ? WHERE username = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setBoolean(1, banned);
+            ps.setString(2, username);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("error updating ban status", e);
+        }
+    }
+
+    public void setRole(String username, Role role) {
+        String sql = "UPDATE users SET role = ? WHERE username = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, role.name());
+            ps.setString(2, username);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("error updating role", e);
+        }
+    }
+
     public int saveMessage(int senderId, String content) {
         String sql = "INSERT INTO messages (sender_id, content) VALUES (?, ?) RETURNING id";
         try (Connection conn = getConnection();

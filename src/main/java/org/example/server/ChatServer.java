@@ -184,7 +184,36 @@ public class ChatServer extends WebSocketServer {
                 database.deleteMessage(id);
                 broadcast(new Packet(PacketType.MSG_DELETED).put("id", String.valueOf(id)));
             }
+        } else if ("BAN_USER".equals(action)) {
+            if (session.getRole() == Role.ADMIN) {
+                banUser(packet.get("target"));
+            }
+        } else if ("PROMOTE".equals(action)) {
+            if (session.getRole() == Role.ADMIN) {
+                promoteUser(packet.get("target"));
+            }
         }
+    }
+
+    private void banUser(String target) {
+        database.setBanned(target, true);
+        for (Map.Entry<WebSocket, ClientSession> entry : sessions.entrySet()) {
+            ClientSession s = entry.getValue();
+            if (s.isAuthenticated() && s.getUsername().equals(target)) {
+                send(entry.getKey(), new Packet(PacketType.ERROR).put("message", "you have been banned"));
+                entry.getKey().close();
+            }
+        }
+    }
+
+    private void promoteUser(String target) {
+        database.setRole(target, Role.MODERATOR);
+        for (ClientSession s : sessions.values()) {
+            if (s.isAuthenticated() && s.getUsername().equals(target)) {
+                s.setRole(Role.MODERATOR);
+            }
+        }
+        broadcastUserList();
     }
 
     private void handlePrivate(ClientSession session, Packet packet) {

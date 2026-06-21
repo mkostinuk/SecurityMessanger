@@ -39,6 +39,14 @@ export function useChat() {
     send('ADMIN_ACTION', { action: 'DELETE_MSG', messageId: String(id) })
   }
 
+  function banUser(username) {
+    send('ADMIN_ACTION', { action: 'BAN_USER', target: username })
+  }
+
+  function promoteUser(username) {
+    send('ADMIN_ACTION', { action: 'PROMOTE', target: username })
+  }
+
   async function sendPrivate(toUser, text) {
     const key = publicKeys[toUser]
     if (!key) {
@@ -80,6 +88,10 @@ export function useChat() {
             publicKeys[user.username] = await importPublicKey(user.publicKey)
           }
         }
+        {
+          const mine = onlineUsers.value.find((u) => u.username === me.username)
+          if (mine) me.role = mine.role
+        }
         break
       case 'CHAT_MSG':
         messages.value.push({
@@ -114,6 +126,8 @@ export function useChat() {
     register,
     sendChat,
     sendPrivate,
-    deleteMessage
+    deleteMessage,
+    banUser,
+    promoteUser
   }
 }

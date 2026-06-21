@@ -8,7 +8,7 @@ const props = defineProps({
   users: Array,
   privateChats: Object
 })
-const emit = defineEmits(['send', 'send-private', 'delete'])
+const emit = defineEmits(['send', 'send-private', 'delete', 'ban', 'promote'])
 
 const draft = ref('')
 const listRef = ref(null)
@@ -27,6 +27,8 @@ const isPrivate = computed(() => activeChat.value !== 'general')
 const canModerate = computed(
   () => props.me.role === 'MODERATOR' || props.me.role === 'ADMIN'
 )
+
+const isAdmin = computed(() => props.me.role === 'ADMIN')
 
 const currentMessages = computed(() => {
   if (!isPrivate.value) {
@@ -98,6 +100,19 @@ watch(
           <span class="dot"></span>
           <span class="online-name">{{ u.username }}</span>
           <span v-if="u.role !== 'USER'" class="role">{{ u.role }}</span>
+          <span v-if="isAdmin" class="admin-actions">
+            <button
+              v-if="u.role === 'USER'"
+              class="mini"
+              title="promote to moderator"
+              @click.stop="emit('promote', u.username)"
+            >
+              ⬆
+            </button>
+            <button class="mini ban" title="ban user" @click.stop="emit('ban', u.username)">
+              ⛔
+            </button>
+          </span>
         </div>
       </div>
 
