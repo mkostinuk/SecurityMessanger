@@ -254,6 +254,22 @@ button {
   color: #c4b5fd;
 }
 
+.logout {
+  margin-left: auto;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #e9d5ff;
+  font-size: 15px;
+}
+
+.logout:hover {
+  background: #ef4444;
+  color: #fff;
+}
+
 .main {
   flex: 1;
   display: flex;

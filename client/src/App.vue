@@ -16,7 +16,8 @@ const {
   sendPrivate,
   deleteMessage,
   banUser,
-  promoteUser
+  promoteUser,
+  logout
 } = useChat()
 </script>
 
@@ -34,5 +35,6 @@ const {
     @delete="deleteMessage"
     @ban="banUser"
     @promote="promoteUser"
+    @logout="logout"
   />
 </template>

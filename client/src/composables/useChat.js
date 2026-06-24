@@ -14,13 +14,31 @@ export function useChat() {
   let keyPair = null
   const publicKeys = {}
 
-  const socket = new WebSocket(SERVER_URL)
-  socket.onopen = () => { status.value = 'connected' }
-  socket.onclose = () => { status.value = 'disconnected'; loggedIn.value = false }
-  socket.onmessage = (event) => onPacket(JSON.parse(event.data))
+  let socket = null
+
+  function connect() {
+    socket = new WebSocket(SERVER_URL)
+    socket.onopen = () => { status.value = 'connected' }
+    socket.onclose = () => { status.value = 'disconnected'; loggedIn.value = false }
+    socket.onmessage = (event) => onPacket(JSON.parse(event.data))
+  }
+  connect()
 
   function send(type, data) {
     socket.send(JSON.stringify({ type, data }))
+  }
+
+  function logout() {
+    socket.close()
+    loggedIn.value = false
+    me.username = ''
+    me.role = ''
+    messages.value = []
+    onlineUsers.value = []
+    for (const name of Object.keys(privateChats)) delete privateChats[name]
+    for (const name of Object.keys(publicKeys)) delete publicKeys[name]
+    keyPair = null
+    connect()
   }
 
   function login(username, password) {
@@ -128,6 +146,7 @@ export function useChat() {
     sendPrivate,
     deleteMessage,
     banUser,
-    promoteUser
+    promoteUser,
+    logout
   }
 }

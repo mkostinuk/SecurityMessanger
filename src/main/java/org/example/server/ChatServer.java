@@ -15,8 +15,10 @@ import org.java_websocket.server.WebSocketServer;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -113,6 +115,14 @@ public class ChatServer extends WebSocketServer {
             send(conn, new Packet(PacketType.AUTH_FAIL).put("message", "username and password are required"));
             return;
         }
+        if (username.length() < 3 || username.length() > 20) {
+            send(conn, new Packet(PacketType.AUTH_FAIL).put("message", "username must be 3-20 characters"));
+            return;
+        }
+        if (password.length() < 6) {
+            send(conn, new Packet(PacketType.AUTH_FAIL).put("message", "password must be at least 6 characters"));
+            return;
+        }
 
         User user = auth.register(username, password);
         if (user == null) {
@@ -162,7 +172,7 @@ public class ChatServer extends WebSocketServer {
             return;
         }
         String text = packet.get("text");
-        if (text == null || text.isBlank()) {
+        if (text == null || text.isBlank() || text.length() > 500) {
             return;
         }
         int id = database.saveMessage(session.getUserId(), text);
@@ -248,8 +258,9 @@ public class ChatServer extends WebSocketServer {
 
     private void broadcastUserList() {
         List<Map<String, String>> users = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
         for (ClientSession s : sessions.values()) {
-            if (s.isAuthenticated()) {
+            if (s.isAuthenticated() && seen.add(s.getUsername())) {
                 Map<String, String> u = new HashMap<>();
                 u.put("username", s.getUsername());
                 u.put("role", s.getRole().name());

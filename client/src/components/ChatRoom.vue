@@ -8,7 +8,7 @@ const props = defineProps({
   users: Array,
   privateChats: Object
 })
-const emit = defineEmits(['send', 'send-private', 'delete', 'ban', 'promote'])
+const emit = defineEmits(['send', 'send-private', 'delete', 'ban', 'promote', 'logout'])
 
 const draft = ref('')
 const listRef = ref(null)
@@ -122,6 +122,7 @@ watch(
           <strong>{{ me.username }}</strong>
           <span class="role">{{ me.role }}</span>
         </div>
+        <button class="logout" title="log out" @click="emit('logout')">⎋</button>
       </div>
     </aside>
 
@@ -156,7 +157,12 @@ watch(
       </div>
 
       <div class="composer">
-        <input v-model="draft" placeholder="Type a message..." @keyup.enter="submit" />
+        <input
+          v-model="draft"
+          maxlength="500"
+          placeholder="Type a message..."
+          @keyup.enter="submit"
+        />
         <button class="primary" @click="submit">Send</button>
       </div>
     </section>
