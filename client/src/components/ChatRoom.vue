@@ -6,13 +6,27 @@ const props = defineProps({
   status: String,
   messages: Array,
   users: Array,
+  allUsers: Array,
   privateChats: Object
 })
-const emit = defineEmits(['send', 'send-private', 'delete', 'ban', 'promote', 'logout'])
+const emit = defineEmits([
+  'send', 'send-private', 'delete', 'ban', 'unban', 'promote', 'refresh-users', 'logout'
+])
 
 const draft = ref('')
 const listRef = ref(null)
 const activeChat = ref('general')
+const showProfile = ref(false)
+const showManage = ref(false)
+
+const manageableUsers = computed(() =>
+  props.allUsers.filter((u) => u.username !== props.me.username)
+)
+
+function openManage() {
+  emit('refresh-users')
+  showManage.value = true
+}
 
 const initial = computed(() => (props.me.username || '?').charAt(0).toUpperCase())
 
@@ -87,6 +101,7 @@ watch(
         >
           🔒 {{ name }}
         </div>
+        <div v-if="isAdmin" class="channel" @click="openManage">⚙ Manage users</div>
       </nav>
 
       <div class="online">
@@ -116,13 +131,13 @@ watch(
         </div>
       </div>
 
-      <div class="profile">
+      <div class="profile" @click="showProfile = true">
         <div class="avatar">{{ initial }}</div>
         <div class="profile-info">
-          <strong>{{ me.username }}</strong>
+          <strong>{{ me.displayName || me.username }}</strong>
           <span class="role">{{ me.role }}</span>
         </div>
-        <button class="logout" title="log out" @click="emit('logout')">⎋</button>
+        <button class="logout" title="log out" @click.stop="emit('logout')">⎋</button>
       </div>
     </aside>
 
@@ -166,5 +181,46 @@ watch(
         <button class="primary" @click="submit">Send</button>
       </div>
     </section>
+
+    <div v-if="showProfile" class="modal-backdrop" @click="showProfile = false">
+      <div class="modal" @click.stop>
+        <div class="avatar big">{{ initial }}</div>
+        <h3>{{ me.displayName || me.username }}</h3>
+        <p class="muted">@{{ me.username }} · {{ me.role }}</p>
+        <p v-if="me.phone"><strong>Phone:</strong> {{ me.phone }}</p>
+        <p v-if="me.about"><strong>About:</strong> {{ me.about }}</p>
+        <button class="primary" @click="showProfile = false">Close</button>
+      </div>
+    </div>
+
+    <div v-if="showManage" class="modal-backdrop" @click="showManage = false">
+      <div class="modal wide-modal" @click.stop>
+        <h3>All users</h3>
+        <div class="user-rows">
+          <div v-for="u in manageableUsers" :key="u.username" class="user-row">
+            <div class="ur-info">
+              <strong>{{ u.username }}</strong>
+              <span class="role-badge">{{ u.role }}</span>
+              <span v-if="u.banned === 'true'" class="banned-badge">banned</span>
+            </div>
+            <div class="ur-actions">
+              <button v-if="u.role === 'USER'" class="mini2" @click="emit('promote', u.username)">
+                Promote
+              </button>
+              <button
+                v-if="u.banned !== 'true'"
+                class="mini2 danger"
+                @click="emit('ban', u.username)"
+              >
+                Ban
+              </button>
+              <button v-else class="mini2" @click="emit('unban', u.username)">Unban</button>
+            </div>
+          </div>
+          <p v-if="manageableUsers.length === 0" class="muted">No other users</p>
+        </div>
+        <button class="primary" @click="showManage = false">Close</button>
+      </div>
+    </div>
   </div>
 </template>

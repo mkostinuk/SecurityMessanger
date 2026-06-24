@@ -6,38 +6,55 @@ const SERVER_URL = 'ws://localhost:8080'
 export function useChat() {
   const status = ref('connecting...')
   const loggedIn = ref(false)
-  const me = reactive({ username: '', role: '' })
+  const me = reactive({ username: '', role: '', displayName: '', phone: '', about: '' })
   const messages = ref([])
   const onlineUsers = ref([])
+  const allUsers = ref([])
   const privateChats = reactive({})
 
   let keyPair = null
   const publicKeys = {}
 
   let socket = null
+  let reconnectTimer = null
 
   function connect() {
     socket = new WebSocket(SERVER_URL)
     socket.onopen = () => { status.value = 'connected' }
-    socket.onclose = () => { status.value = 'disconnected'; loggedIn.value = false }
     socket.onmessage = (event) => onPacket(JSON.parse(event.data))
+    socket.onclose = () => {
+      status.value = 'disconnected, reconnecting...'
+      loggedIn.value = false
+      reconnectTimer = setTimeout(connect, 2000)
+    }
   }
   connect()
 
   function send(type, data) {
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+      status.value = 'no connection to server'
+      return
+    }
     socket.send(JSON.stringify({ type, data }))
   }
 
   function logout() {
+    if (reconnectTimer) clearTimeout(reconnectTimer)
+    socket.onclose = null
     socket.close()
     loggedIn.value = false
     me.username = ''
     me.role = ''
+    me.displayName = ''
+    me.phone = ''
+    me.about = ''
     messages.value = []
     onlineUsers.value = []
+    allUsers.value = []
     for (const name of Object.keys(privateChats)) delete privateChats[name]
     for (const name of Object.keys(publicKeys)) delete publicKeys[name]
     keyPair = null
+    status.value = 'connecting...'
     connect()
   }
 
@@ -45,8 +62,8 @@ export function useChat() {
     send('LOGIN', { username, password })
   }
 
-  function register(username, password) {
-    send('REGISTER', { username, password })
+  function register(username, password, displayName, phone, about) {
+    send('REGISTER', { username, password, displayName, phone, about })
   }
 
   function sendChat(text) {
@@ -61,8 +78,16 @@ export function useChat() {
     send('ADMIN_ACTION', { action: 'BAN_USER', target: username })
   }
 
+  function unbanUser(username) {
+    send('ADMIN_ACTION', { action: 'UNBAN', target: username })
+  }
+
   function promoteUser(username) {
     send('ADMIN_ACTION', { action: 'PROMOTE', target: username })
+  }
+
+  function requestAllUsers() {
+    send('ADMIN_ACTION', { action: 'LIST_USERS' })
   }
 
   async function sendPrivate(toUser, text) {
@@ -88,10 +113,17 @@ export function useChat() {
       case 'AUTH_SUCCESS':
         me.username = packet.data.username
         me.role = packet.data.role
+        me.displayName = packet.data.displayName || ''
+        me.phone = packet.data.phone || ''
+        me.about = packet.data.about || ''
         loggedIn.value = true
         status.value = 'online'
         keyPair = await generateKeyPair()
         send('PUBLIC_KEY', { key: await exportPublicKey(keyPair.publicKey) })
+        if (me.role === 'ADMIN') requestAllUsers()
+        break
+      case 'ALL_USERS':
+        allUsers.value = JSON.parse(packet.data.users)
         break
       case 'AUTH_FAIL':
         status.value = packet.data.message
@@ -146,7 +178,10 @@ export function useChat() {
     sendPrivate,
     deleteMessage,
     banUser,
+    unbanUser,
     promoteUser,
+    requestAllUsers,
+    allUsers,
     logout
   }
 }

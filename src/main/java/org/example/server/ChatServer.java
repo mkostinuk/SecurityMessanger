@@ -124,16 +124,18 @@ public class ChatServer extends WebSocketServer {
             return;
         }
 
-        User user = auth.register(username, password);
+        String displayName = packet.get("displayName");
+        String phone = packet.get("phone");
+        String about = packet.get("about");
+
+        User user = auth.register(username, password, displayName, phone, about);
         if (user == null) {
             send(conn, new Packet(PacketType.AUTH_FAIL).put("message", "username already taken"));
             return;
         }
 
         session.login(user.getId(), user.getUsername(), user.getRole());
-        send(conn, new Packet(PacketType.AUTH_SUCCESS)
-                .put("username", user.getUsername())
-                .put("role", user.getRole().name()));
+        sendAuthSuccess(conn, user);
         sendHistory(conn);
         broadcastUserList();
         System.out.println("[Server] registered: " + username);
@@ -159,12 +161,19 @@ public class ChatServer extends WebSocketServer {
         }
 
         session.login(user.getId(), user.getUsername(), user.getRole());
-        send(conn, new Packet(PacketType.AUTH_SUCCESS)
-                .put("username", user.getUsername())
-                .put("role", user.getRole().name()));
+        sendAuthSuccess(conn, user);
         sendHistory(conn);
         broadcastUserList();
         System.out.println("[Server] logged in: " + username);
+    }
+
+    private void sendAuthSuccess(WebSocket conn, User user) {
+        send(conn, new Packet(PacketType.AUTH_SUCCESS)
+                .put("username", user.getUsername())
+                .put("role", user.getRole().name())
+                .put("displayName", user.getDisplayName() == null ? "" : user.getDisplayName())
+                .put("phone", user.getPhone() == null ? "" : user.getPhone())
+                .put("about", user.getAbout() == null ? "" : user.getAbout()));
     }
 
     private void handleChat(WebSocket conn, ClientSession session, Packet packet) {
@@ -194,15 +203,44 @@ public class ChatServer extends WebSocketServer {
                 database.deleteMessage(id);
                 broadcast(new Packet(PacketType.MSG_DELETED).put("id", String.valueOf(id)));
             }
-        } else if ("BAN_USER".equals(action)) {
-            if (session.getRole() == Role.ADMIN) {
-                banUser(packet.get("target"));
-            }
-        } else if ("PROMOTE".equals(action)) {
-            if (session.getRole() == Role.ADMIN) {
-                promoteUser(packet.get("target"));
-            }
+            return;
         }
+
+        if (session.getRole() != Role.ADMIN) {
+            return;
+        }
+
+        switch (action) {
+            case "LIST_USERS":
+                sendAllUsers(conn);
+                break;
+            case "BAN_USER":
+                banUser(packet.get("target"));
+                sendAllUsers(conn);
+                break;
+            case "UNBAN":
+                database.setBanned(packet.get("target"), false);
+                sendAllUsers(conn);
+                break;
+            case "PROMOTE":
+                promoteUser(packet.get("target"));
+                sendAllUsers(conn);
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void sendAllUsers(WebSocket conn) {
+        List<Map<String, String>> users = new ArrayList<>();
+        for (User u : database.getAllUsers()) {
+            Map<String, String> row = new HashMap<>();
+            row.put("username", u.getUsername());
+            row.put("role", u.getRole().name());
+            row.put("banned", String.valueOf(u.isBanned()));
+            users.add(row);
+        }
+        send(conn, new Packet(PacketType.ALL_USERS).put("users", gson.toJson(users)));
     }
 
     private void banUser(String target) {

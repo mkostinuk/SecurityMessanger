@@ -12,6 +12,7 @@ public enum PacketType {
     USER_JOINED,
     USER_LEFT,
     USER_LIST,
+    ALL_USERS,
     HISTORY,
     MSG_DELETED,
     ERROR

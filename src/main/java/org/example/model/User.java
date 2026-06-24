@@ -7,13 +7,20 @@ public class User {
     private String passwordHash;
     private Role role;
     private boolean banned;
+    private String displayName;
+    private String phone;
+    private String about;
 
-    public User(int id, String username, String passwordHash, Role role, boolean banned) {
+    public User(int id, String username, String passwordHash, Role role, boolean banned,
+                String displayName, String phone, String about) {
         this.id = id;
         this.username = username;
         this.passwordHash = passwordHash;
         this.role = role;
         this.banned = banned;
+        this.displayName = displayName;
+        this.phone = phone;
+        this.about = about;
     }
 
     public int getId() {
@@ -34,5 +41,17 @@ public class User {
 
     public boolean isBanned() {
         return banned;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public String getAbout() {
+        return about;
     }
 }

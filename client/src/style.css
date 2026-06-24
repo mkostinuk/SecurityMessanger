@@ -45,24 +45,22 @@ body {
   margin-bottom: 24px;
 }
 
-.login input {
+.login input,
+.login textarea {
   width: 100%;
   padding: 12px 14px;
   margin-bottom: 12px;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
   font-size: 15px;
+  font-family: inherit;
+  resize: vertical;
 }
 
-.login input:focus {
+.login input:focus,
+.login textarea:focus {
   outline: none;
   border-color: #8b5cf6;
-}
-
-.buttons {
-  display: flex;
-  gap: 10px;
-  margin-top: 8px;
 }
 
 button {
@@ -74,8 +72,20 @@ button {
   cursor: pointer;
 }
 
-.login button {
-  flex: 1;
+.wide {
+  width: 100%;
+}
+
+.switch {
+  margin-top: 14px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.switch a {
+  color: #8b5cf6;
+  cursor: pointer;
+  font-weight: 600;
 }
 
 .primary {
@@ -222,6 +232,11 @@ button {
   gap: 10px;
   padding: 16px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+}
+
+.profile:hover {
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .avatar {
@@ -384,4 +399,115 @@ button {
 .composer button {
   flex: 0 0 auto;
   padding: 12px 20px;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 14px;
+  padding: 28px;
+  width: 320px;
+  text-align: center;
+}
+
+.modal h3 {
+  margin: 12px 0 2px;
+}
+
+.modal p {
+  margin: 6px 0;
+  font-size: 14px;
+}
+
+.modal .muted {
+  color: #94a3b8;
+  text-transform: capitalize;
+}
+
+.modal .primary {
+  width: 100%;
+  margin-top: 16px;
+}
+
+.avatar.big {
+  width: 64px;
+  height: 64px;
+  font-size: 26px;
+  margin: 0 auto;
+}
+
+.wide-modal {
+  width: 420px;
+  text-align: left;
+}
+
+.user-rows {
+  max-height: 50vh;
+  overflow-y: auto;
+  margin: 16px 0;
+}
+
+.user-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.ur-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.role-badge {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #7c3aed;
+  background: #ede9fe;
+  padding: 2px 6px;
+  border-radius: 999px;
+}
+
+.banned-badge {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: #b91c1c;
+  background: #fee2e2;
+  padding: 2px 6px;
+  border-radius: 999px;
+}
+
+.ur-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.mini2 {
+  padding: 6px 10px;
+  font-size: 13px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.mini2.danger {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.mini2.danger:hover {
+  background: #ef4444;
+  color: #fff;
 }

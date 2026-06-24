@@ -4,6 +4,7 @@ import org.example.Config;
 import org.example.model.ChatMessage;
 import org.example.model.Role;
 import org.example.model.User;
+import org.mindrot.jbcrypt.BCrypt;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -45,7 +46,8 @@ public class Database {
     }
 
     public User findByUsername(String username) {
-        String sql = "SELECT id, username, password_hash, role, is_banned FROM users WHERE username = ?";
+        String sql = "SELECT id, username, password_hash, role, is_banned, display_name, phone, about " +
+                "FROM users WHERE username = ?";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, username);
@@ -56,7 +58,10 @@ public class Database {
                             rs.getString("username"),
                             rs.getString("password_hash"),
                             Role.valueOf(rs.getString("role")),
-                            rs.getBoolean("is_banned"));
+                            rs.getBoolean("is_banned"),
+                            rs.getString("display_name"),
+                            rs.getString("phone"),
+                            rs.getString("about"));
                 }
                 return null;
             }
@@ -65,13 +70,18 @@ public class Database {
         }
     }
 
-    public int createUser(String username, String passwordHash, Role role) {
-        String sql = "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?) RETURNING id";
+    public int createUser(String username, String passwordHash, Role role,
+                          String displayName, String phone, String about) {
+        String sql = "INSERT INTO users (username, password_hash, role, display_name, phone, about) " +
+                "VALUES (?, ?, ?, ?, ?, ?) RETURNING id";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, username);
             ps.setString(2, passwordHash);
             ps.setString(3, role.name());
+            ps.setString(4, displayName);
+            ps.setString(5, phone);
+            ps.setString(6, about);
             try (ResultSet rs = ps.executeQuery()) {
                 rs.next();
                 return rs.getInt("id");
@@ -79,6 +89,39 @@ public class Database {
         } catch (SQLException e) {
             throw new RuntimeException("error creating user", e);
         }
+    }
+
+    public void seedUser(String username, String rawPassword, Role role,
+                         String displayName, String phone, String about) {
+        if (findByUsername(username) != null) {
+            return;
+        }
+        String hash = BCrypt.hashpw(rawPassword, BCrypt.gensalt());
+        createUser(username, hash, role, displayName, phone, about);
+    }
+
+    public List<User> getAllUsers() {
+        String sql = "SELECT id, username, role, is_banned, display_name, phone, about " +
+                "FROM users ORDER BY username";
+        List<User> result = new ArrayList<>();
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                result.add(new User(
+                        rs.getInt("id"),
+                        rs.getString("username"),
+                        "",
+                        Role.valueOf(rs.getString("role")),
+                        rs.getBoolean("is_banned"),
+                        rs.getString("display_name"),
+                        rs.getString("phone"),
+                        rs.getString("about")));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("error loading users", e);
+        }
+        return result;
     }
 
     public void setBanned(String username, boolean banned) {
